@@ -1,0 +1,18 @@
+syntax = "proto3";
+package telemetry;
+
+message TelemetryResponse {
+  string id = 1;
+  uint64 sequence_number = 2;
+  double latitude = 3;
+  double longitude = 4;
+  double altitude = 5;
+}
+
+message TelemetryRequest {
+  optional string id = 1;
+}
+
+service TelemetryService {
+  rpc Telemetry (TelemetryRequest) returns (stream TelemetryResponse);
+}
