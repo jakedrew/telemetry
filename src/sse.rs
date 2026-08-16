@@ -5,6 +5,7 @@ use axum::Router;
 use std::convert::Infallible;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::StreamExt;
+use tower_http::cors::CorsLayer;
 
 pub type Tx = tokio::sync::broadcast::Sender<String>;
 
@@ -13,6 +14,7 @@ pub fn router() -> (Router, Tx) {
 
     let router = Router::new()
         .route("/stream", get(stream_handler))
+        .layer(CorsLayer::permissive())
         .with_state(tx.clone());
 
     return (router, tx);
