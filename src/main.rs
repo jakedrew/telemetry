@@ -54,10 +54,10 @@ impl Telemetry for TelemetryService {
 }
 
 async fn generate_device(device: String, start: [f64; 2], range: [f64; 4], tx: broadcast::Sender<TelemetryResponse>) {
-    let mut tick = tokio::time::interval(std::time::Duration::from_secs(1));
+    let mut tick = tokio::time::interval(std::time::Duration::from_millis(500));
     let mut seq = 0u64;
 
-    let route_size = 0.01;
+    let route_size: f64 = rand::rng().random_range(0.005..=0.02);
 
     let x0 = (start[0] - route_size).max(range[0]);
     let x1 = (start[0] + route_size).min(range[1]);
@@ -65,10 +65,16 @@ async fn generate_device(device: String, start: [f64; 2], range: [f64; 4], tx: b
     let y1 = (start[1] + route_size).min(range[3]);
 
     let waypoints = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
-    let mut current_waypoint = 0;
-    let mut current = waypoints[0];
+    let mut current_waypoint = rand::rng().random_range(0..=3);
 
-    let step = 0.0002;
+    let prev = waypoints[(current_waypoint + 3) % 4];
+    let t: f64 = rand::rng().random_range(0.0..1.0);
+    let mut current = [
+        prev[0] + (waypoints[current_waypoint][0] - prev[0]) * t,
+        prev[1] + (waypoints[current_waypoint][1] - prev[1]) * t,
+    ];
+
+    let step: f64 = rand::rng().random_range(0.0003..=0.002); 
 
     loop {
         tick.tick().await;
@@ -106,16 +112,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let (tx, _) = broadcast::channel::<TelemetryResponse>(256);
 
+
+    let start_point: [f64; 2] = [-1.297848, 50.676592];
+
+    let half_size_meters: f64 = 5000.0; 
+    let meters_per_degree_latitude: f64 = 111320.0;
+    let meters_per_degree_longitude: f64 = meters_per_degree_latitude * start_point[1].to_radians().cos();
+
+    let degrees_longitude = half_size_meters / meters_per_degree_longitude;
+    let degrees_latitude = half_size_meters / meters_per_degree_latitude;
+
+
     let mut rng = rand::rng();
-    for n in 1..=25 {
+    for n in 1..=20 {
         // long, lat to match the openlayer
-        let start_point = [-1.297848, 50.676592];
 
         let scale_long: f64 = rng.random_range(-1.0..=1.0);
         let scale_lat: f64 = rng.random_range(-1.0..=1.0);
 
-        let long: f64 = start_point[0] + (0.22 * scale_long);
-        let lat: f64 = start_point[1] + (0.14 * scale_lat);
+        let long: f64 = start_point[0] + degrees_longitude * scale_long;
+        let lat: f64 = start_point[1] + degrees_latitude * scale_lat;
 
         let range: [f64; 4] = [
             start_point[0] - 0.22, 
