@@ -77,7 +77,7 @@ function moveMarker(id, lon, lat) {
     vehicles[id].trail.getGeometry().setCoordinates(coords);
 }
 
-var es = new EventSource('http://localhost:3000/stream');
+var es = new EventSource('/stream');
 
 var vehicles = {};
 
