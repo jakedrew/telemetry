@@ -161,11 +161,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     tokio::spawn(async {
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+        let listener = tokio::net::TcpListener::bind("0.0.0.0:2199").await.unwrap();
         axum::serve(listener, app).await.unwrap();
     });
 
-    let address = "0.0.0.0:50051".parse()?;
+    let address = "0.0.0.0:21990".parse()?;
     Server::builder()
         .add_service(TelemetryServiceServer::new(TelemetryService { tx }))
         .serve(address)
