@@ -1,0 +1,11 @@
+telemetry.jakedrw.com {
+	reverse_proxy /telemetry.TelemetryService/* telemetry:21990 {
+		transport http {
+			versions h2c
+		}
+	}
+ 
+	reverse_proxy /stream telemetry:2199
+ 
+	reverse_proxy telemetry:2190
+}
