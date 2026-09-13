@@ -1,7 +1,7 @@
 import './style.css';
 import {Map, View} from 'ol';
 import TileLayer from 'ol/layer/Tile';
-import OSM from 'ol/source/OSM';
+import XYZ from 'ol/source/XYZ';
 import {fromLonLat} from 'ol/proj';
 
 import VectorLayer from 'ol/layer/Vector';
@@ -16,6 +16,9 @@ import LineString from 'ol/geom/LineString';
 
 import Overlay from 'ol/Overlay';
 
+//api key
+const token = import.meta.env.MAPBOX_TOKEN;
+
 // isle of wight
 const center_point = fromLonLat([-1.297848, 50.676592]);
 
@@ -23,7 +26,10 @@ const map = new Map({
     target: 'map',
     layers: [
         new TileLayer({
-        source: new OSM()
+            source: new XYZ({
+                url: `https://api.mapbox.com/styles/v1/mapbox/cj44mfrt20f082snokim4ungi/tiles/512/{z}/{x}/{y}@2x?access_token=${token}`,
+                tileSize: 512,
+            })
         })
     ],
     view: new View({
