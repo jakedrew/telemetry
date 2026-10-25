@@ -39,8 +39,8 @@ const map = new Map({
         })
     ],
     view: new View({
-        center: center_point, 
-        zoom: 11 
+        center: center_point,
+        zoom: 11
     })
 });
 /*    interactions: [
@@ -55,8 +55,8 @@ const map = new Map({
     ],
 });
 */
-// border of the are of interest 
-const halfSize = 10000; 
+// border of the are of interest
+const halfSize = 10000;
 
 const square = fromExtent([
     center_point[0] - halfSize,
@@ -81,8 +81,6 @@ const vectorLayer = new VectorLayer({
 map.addLayer(vectorLayer)
 
 function moveMarker(id, lon, lat) {
-    vehicles[id].marker.getGeometry().setCoordinates(fromLonLat([lon, lat]));
-
     const coord = fromLonLat([lon, lat]);
 
     vehicles[id].marker.getGeometry().setCoordinates(coord);
@@ -119,7 +117,7 @@ es.onmessage = function (e) {
 
     if (vehicles[m.id].marker == null) {
         vehicles[m.id].marker = new Feature(new Point(fromLonLat([0, 0])));
-        vehicles[m.id].marker.set('id', m.id); 
+        vehicles[m.id].marker.set('id', m.id);
         vehicles[m.id].marker.setStyle(new Style({
             image: new Icon({
               opacity: 1,
@@ -155,13 +153,13 @@ es.onmessage = function (e) {
         vehicles[m.id].trail.setStyle(new Style({
             stroke: new Stroke({color: vehicles[m.id].colour, width: 2}),
         }));
-        
+
         map.addLayer(new VectorLayer({
             source: new VectorSource({features: [vehicles[m.id].trail]}),
             zIndex: 1
         }));
     }
-    
+
     moveMarker(m.id, m.longitude, m.latitude);
 };
 // document.getElementById('output').textContent = e.data;
