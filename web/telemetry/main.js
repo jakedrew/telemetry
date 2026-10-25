@@ -14,10 +14,16 @@ import {Style, Stroke, Fill, Text, Icon, Circle as CircleStyle} from 'ol/style';
 
 import LineString from 'ol/geom/LineString';
 
+import {
+  DragPan, MouseWheelZoom, PinchZoom, PinchRotate,
+  DoubleClickZoom, KeyboardPan, KeyboardZoom, DragRotate,
+} from 'ol/interaction';
+
+import {focus} from 'ol/events/condition';
+
 import Overlay from 'ol/Overlay';
 
-//api key
-const token = import.meta.env.MAPBOX_TOKEN;
+const token = import.meta.env.VITE_MAPBOX_TOKEN;
 
 // isle of wight
 const center_point = fromLonLat([-1.297848, 50.676592]);
@@ -37,7 +43,18 @@ const map = new Map({
         zoom: 11 
     })
 });
-
+/*    interactions: [
+        new DragPan({condition: focus}),
+        new MouseWheelZoom({condition: focus}),
+        new PinchZoom({condition: focus}),
+        new PinchRotate({condition: focus}),
+        new DoubleClickZoom({condition: focus}),
+        new DragRotate({condition: focus}),
+        new KeyboardPan({condition: focus}),
+        new KeyboardZoom({condition: focus}),
+    ],
+});
+*/
 // border of the are of interest 
 const halfSize = 10000; 
 

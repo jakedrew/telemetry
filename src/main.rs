@@ -146,17 +146,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut rx = tx.subscribe();
     tokio::spawn(async move {
-        while let Ok(message) = rx.recv().await {
-
-            let _ = sse_tx.send(
-                serde_json::json!({
-                    "id": message.id,
-                    "sequence_number": message.sequence_number,
-                    "latitude": message.latitude,
-                    "longitude": message.longitude,
-                    "altitude": message.altitude,
-                }).to_string(),
-            );
+        loop {
+            match rx.recv().await {
+                Ok(message) => {
+                    let _ = sse_tx.send(
+                        serde_json::json!({
+                            "id": message.id,
+                            "sequence_number": message.sequence_number,
+                            "latitude": message.latitude,
+                            "longitude": message.longitude,
+                            "altitude": message.altitude,
+                        }).to_string(),
+                    );
+                }
+                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(broadcast::error::RecvError::Closed) => break,
+            }
         }
     });
 
