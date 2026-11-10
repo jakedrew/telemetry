@@ -11,18 +11,21 @@ use rand::RngExt;
 
 pub mod proto {
     tonic::include_proto!("telemetry");
+
+    pub const FILE_DESCRIPTOR_SET: &[u8] =
+        tonic::include_file_descriptor_set!("telemetry_descriptor");
 }
 
 pub struct TelemetryService {
     tx: broadcast::Sender<TelemetryResponse>,
 }
 
-/* 
+/*
  * TODO:
  *  [X] Randomise location start points (within radius N of some point)
  *  [X] Move point within this area
  *  [X] Spawn between 5 - 50 devices for map
- */                
+ */
 
 #[tonic::async_trait]
 impl Telemetry for TelemetryService {
@@ -32,7 +35,7 @@ impl Telemetry for TelemetryService {
         &self,
         request: Request<TelemetryRequest>,
     ) -> Result<Response<Self::TelemetryStream>, Status> {
-        let _req = request.into_inner();
+        let id = request.into_inner().id;
         let (tx, rx) = tokio::sync::mpsc::channel(16);
         let mut bus = self.tx.subscribe();
 
@@ -40,6 +43,11 @@ impl Telemetry for TelemetryService {
             loop {
                 match bus.recv().await {
                     Ok(message) => {
+
+                        if id.as_deref().is_some_and(|id| !id.is_empty() && message.id != id) {
+                            continue;
+                        }
+
                         if tx.send(Ok(message)).await.is_err() {
                             break;
                         }
@@ -74,7 +82,7 @@ async fn generate_device(device: String, start: [f64; 2], range: [f64; 4], tx: b
         prev[1] + (waypoints[current_waypoint][1] - prev[1]) * t,
     ];
 
-    let step: f64 = rand::rng().random_range(0.0003..=0.002); 
+    let step: f64 = rand::rng().random_range(0.0003..=0.002);
 
     loop {
         tick.tick().await;
@@ -109,13 +117,13 @@ async fn generate_device(device: String, start: [f64; 2], range: [f64; 4], tx: b
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (app, sse_tx) = sse::router();
-    
+
     let (tx, _) = broadcast::channel::<TelemetryResponse>(256);
 
 
     let start_point: [f64; 2] = [-1.297848, 50.676592];
 
-    let half_size_meters: f64 = 5000.0; 
+    let half_size_meters: f64 = 5000.0;
     let meters_per_degree_latitude: f64 = 111320.0;
     let meters_per_degree_longitude: f64 = meters_per_degree_latitude * start_point[1].to_radians().cos();
 
@@ -127,16 +135,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     for n in 1..=20 {
         // long, lat to match the openlayer
 
-        let scale_long: f64 = rng.random_range(-1.0..=1.0);
-        let scale_lat: f64 = rng.random_range(-1.0..=1.0);
+        // let scale_long: f64 = rng.random_range(-1.0..=1.0);
+        // let scale_lat: f64 = rng.random_range(-1.0..=1.0);
+
+        let i = n - 1;
+        let col = (i % 5) as f64;
+        let row = (i / 5) as f64;
+
+        let scale_long: f64 = -1.0 + (col + rng.random_range(0.1..0.9)) * (2.0 / 5.0);
+        let scale_lat: f64 = -1.0 + (row + rng.random_range(0.1..0.9)) * (2.0 / 4.0);
 
         let long: f64 = start_point[0] + degrees_longitude * scale_long;
         let lat: f64 = start_point[1] + degrees_latitude * scale_lat;
 
         let range: [f64; 4] = [
-            start_point[0] - 0.22, 
+            start_point[0] - 0.22,
             start_point[0] + 0.22,
-            start_point[1] - 0.14, 
+            start_point[1] - 0.14,
             start_point[1] + 0.14
         ];
 
@@ -173,7 +188,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let grpc = async {
         let address = "0.0.0.0:21990".parse()?;
+
+        let reflection = tonic_reflection::server::Builder::configure()
+                    .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
+                    .build_v1()?;
+
         Server::builder()
+            .add_service(reflection)
             .add_service(TelemetryServiceServer::new(TelemetryService { tx }))
             .serve(address)
             .await?;

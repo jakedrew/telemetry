@@ -16,4 +16,4 @@ COPY --from=rust /app/target/release/telemetry /usr/local/bin/telemetry
 COPY --from=web /web/dist /srv
 COPY Caddyfile /etc/caddy/Caddyfile
 EXPOSE 80 443 2190 2199 21990
-CMD /usr/local/bin/telemetry & caddy run --config /etc/caddy/Caddyfile
+CMD ["/bin/bash", "-c", "/usr/local/bin/telemetry & caddy run --config /etc/caddy/Caddyfile & wait -n; exit $?"]
