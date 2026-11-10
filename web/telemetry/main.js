@@ -17,9 +17,10 @@ import LineString from 'ol/geom/LineString';
 import {
   DragPan, MouseWheelZoom, PinchZoom, PinchRotate,
   DoubleClickZoom, KeyboardPan, KeyboardZoom, DragRotate,
+  defaults as defaultInteractions
 } from 'ol/interaction';
 
-import {focus} from 'ol/events/condition';
+import { focus, platformModifierKeyOnly} from 'ol/events/condition';
 
 import Overlay from 'ol/Overlay';
 
@@ -27,6 +28,19 @@ const token = import.meta.env.VITE_MAPBOX_TOKEN;
 
 // isle of wight
 const center_point = fromLonLat([-1.297848, 50.676592]);
+
+const embed = new URLSearchParams(location.search).has('embed');
+
+const interaction = embed
+    ? defaultInteractions({
+        mouseWheelZoom: false,
+        dragPan: false,
+        pinchZoom: false,
+        pinchRotate: false
+    }).extend([
+        new MouseWheelZoom({ condition: platformModifierKeyOnly }),
+    ])
+    : defaultInteractions();
 
 const map = new Map({
     target: 'map',
@@ -41,22 +55,12 @@ const map = new Map({
     view: new View({
         center: center_point,
         zoom: 11
-    })
+    }),
+    interactions: interaction
 });
-/*    interactions: [
-        new DragPan({condition: focus}),
-        new MouseWheelZoom({condition: focus}),
-        new PinchZoom({condition: focus}),
-        new PinchRotate({condition: focus}),
-        new DoubleClickZoom({condition: focus}),
-        new DragRotate({condition: focus}),
-        new KeyboardPan({condition: focus}),
-        new KeyboardZoom({condition: focus}),
-    ],
-});
-*/
+
 // border of the are of interest
-const halfSize = 10000;
+const halfSize = 7500 / Math.cos(50.676592 * Math.PI / 180);
 
 const square = fromExtent([
     center_point[0] - halfSize,
@@ -77,6 +81,10 @@ const vectorLayer = new VectorLayer({
         }),
     }),
 });
+
+if (embed) {
+    map.getView().fit(square, {padding: [25, 25, 25, 25]});
+}
 
 map.addLayer(vectorLayer)
 
@@ -164,6 +172,10 @@ es.onmessage = function (e) {
 };
 // document.getElementById('output').textContent = e.data;
 
+const status = document.getElementById('status');
+es.onopen = function () {
+    status.textContent = '';
+};
 es.onerror = function () {
-    console.error('onerror hit');
+    status.textContent = 'Stream Disconnected: Reconnecting';
 };
