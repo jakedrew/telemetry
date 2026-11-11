@@ -2,10 +2,10 @@ mod sse;
 
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status, transport::Server};
 
-use proto::{TelemetryRequest, TelemetryResponse};
 use proto::telemetry_service_server::{TelemetryService as Telemetry, TelemetryServiceServer};
+use proto::{TelemetryRequest, TelemetryResponse};
 
 use rand::RngExt;
 
@@ -19,13 +19,6 @@ pub mod proto {
 pub struct TelemetryService {
     tx: broadcast::Sender<TelemetryResponse>,
 }
-
-/*
- * TODO:
- *  [X] Randomise location start points (within radius N of some point)
- *  [X] Move point within this area
- *  [X] Spawn between 5 - 50 devices for map
- */
 
 #[tonic::async_trait]
 impl Telemetry for TelemetryService {
@@ -43,8 +36,10 @@ impl Telemetry for TelemetryService {
             loop {
                 match bus.recv().await {
                     Ok(message) => {
-
-                        if id.as_deref().is_some_and(|id| !id.is_empty() && message.id != id) {
+                        if id
+                            .as_deref()
+                            .is_some_and(|id| !id.is_empty() && message.id != id)
+                        {
                             continue;
                         }
 
@@ -52,7 +47,9 @@ impl Telemetry for TelemetryService {
                             break;
                         }
                     }
-                    Err(broadcast::error::RecvError::Lagged(_n)) => { continue; }
+                    Err(broadcast::error::RecvError::Lagged(_n)) => {
+                        continue;
+                    }
                     Err(broadcast::error::RecvError::Closed) => break,
                 }
             }
@@ -61,7 +58,12 @@ impl Telemetry for TelemetryService {
     }
 }
 
-async fn generate_device(device: String, start: [f64; 2], range: [f64; 4], tx: broadcast::Sender<TelemetryResponse>) {
+async fn generate_device(
+    device: String,
+    start: [f64; 2],
+    range: [f64; 4],
+    tx: broadcast::Sender<TelemetryResponse>,
+) {
     let mut tick = tokio::time::interval(std::time::Duration::from_millis(500));
     let mut seq = 0u64;
 
@@ -120,24 +122,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let (tx, _) = broadcast::channel::<TelemetryResponse>(256);
 
-
     let start_point: [f64; 2] = [-1.297848, 50.676592];
 
     let half_size_meters: f64 = 5000.0;
     let meters_per_degree_latitude: f64 = 111320.0;
-    let meters_per_degree_longitude: f64 = meters_per_degree_latitude * start_point[1].to_radians().cos();
+    let meters_per_degree_longitude: f64 =
+        meters_per_degree_latitude * start_point[1].to_radians().cos();
 
     let degrees_longitude = half_size_meters / meters_per_degree_longitude;
     let degrees_latitude = half_size_meters / meters_per_degree_latitude;
 
-
     let mut rng = rand::rng();
     for n in 1..=20 {
-        // long, lat to match the openlayer
-
-        // let scale_long: f64 = rng.random_range(-1.0..=1.0);
-        // let scale_lat: f64 = rng.random_range(-1.0..=1.0);
-
         let i = n - 1;
         let col = (i % 5) as f64;
         let row = (i / 5) as f64;
@@ -152,7 +148,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             start_point[0] - 0.22,
             start_point[0] + 0.22,
             start_point[1] - 0.14,
-            start_point[1] + 0.14
+            start_point[1] + 0.14,
         ];
 
         let device = format!("SIM-{n}");
@@ -171,7 +167,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             "latitude": message.latitude,
                             "longitude": message.longitude,
                             "altitude": message.altitude,
-                        }).to_string(),
+                        })
+                        .to_string(),
                     );
                 }
                 Err(broadcast::error::RecvError::Lagged(_)) => continue,
@@ -190,8 +187,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let address = "0.0.0.0:21990".parse()?;
 
         let reflection = tonic_reflection::server::Builder::configure()
-                    .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
-                    .build_v1()?;
+            .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
+            .build_v1()?;
 
         Server::builder()
             .add_service(reflection)
