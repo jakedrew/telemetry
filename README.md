@@ -3,10 +3,6 @@
 
 I wanted a small project to practise streaming data in Rust, and also to learn Protobufs. 20 simulated drone-like devices which report their position twice a second. With one rust server that streams this in two formats: gRPC (tonic), and Server Sent Events (SSE because there is no native gRPC for browsers). The map below is a live demo of this:
 
-<div class="embed">
-    <iframe src="https://telemetry.jakedrw.com/?embed=1" frameborder="0" loading="lazy"></iframe>
-</div>
-
 ## Try it for yourself:
 
 The map above is an iframe of the [Live map](https://telemetry.jakedrw.com/), so on the full site you can easily move around and zoom. It's a docker container built from [Source (GitHub)](https://github.com/jakedrew/telemetry).
@@ -54,12 +50,12 @@ Leave out the id (or send it empty) and you get every device.
 
 ## How it works
 
-<pre class="mermaid">
+```mermaid
 flowchart LR
     devices["20 devices"] --> bus["broadcast channel"]
     bus --> grpc["gRPC"] --> tools["grpcurl"]
     bus --> sse["SSE"] --> map["openlayers map"]
-</pre>
+```
 
 Each device is its own tokio task - they all send into one `tokio::sync::broadcast` channel (buffer of 256). Anything that wants the data just subscribes to this channel.
 
