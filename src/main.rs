@@ -34,23 +34,27 @@ impl Telemetry for TelemetryService {
 
         tokio::spawn(async move {
             loop {
-                match bus.recv().await {
-                    Ok(message) => {
-                        if id
-                            .as_deref()
-                            .is_some_and(|id| !id.is_empty() && message.id != id)
-                        {
+                tokio::select! {
+                    _ = tx.closed() => break,
+                    received = bus.recv() => match received {
+                        Ok(message) => {
+                            if id
+                                .as_deref()
+                                .is_some_and(|id| !id.is_empty() && message.id != id)
+                            {
+                                continue;
+                            }
+
+                            if tx.send(Ok(message)).await.is_err() {
+                                break;
+                            }
+                        }
+                        Err(broadcast::error::RecvError::Lagged(n)) => {
+                            eprintln!("gRPC client lagged, skipped {n} messages");
                             continue;
                         }
-
-                        if tx.send(Ok(message)).await.is_err() {
-                            break;
-                        }
-                    }
-                    Err(broadcast::error::RecvError::Lagged(_n)) => {
-                        continue;
-                    }
-                    Err(broadcast::error::RecvError::Closed) => break,
+                        Err(broadcast::error::RecvError::Closed) => break,
+                    },
                 }
             }
         });
