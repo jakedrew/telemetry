@@ -1,11 +1,11 @@
 # Telemetry: Streaming gRPC/SSE to Map (Rust/Tokio)
 2026-11-10
 
-I wanted a small project to practise streaming data in Rust, and also to learn Protobufs. 20 simulated drone-like devices which report their position twice a second. With one rust server that streams this in two formats: gRPC (tonic), and Server Sent Events (SSE because there is no native gRPC for browsers). The map below is a live demo of this:
+I wanted a small project to practise streaming data in Rust, and also to learn Protobufs. 20 simulated drone-like devices which report their position twice a second. With one rust server that streams this in two formats: gRPC (tonic), and Server Sent Events (SSE because there is no native gRPC for browsers). There is a live demo of this on the [Live map](https://telemetry.jakedrw.com/).
 
 ## Try it for yourself:
 
-The map above is an iframe of the [Live map](https://telemetry.jakedrw.com/), so on the full site you can easily move around and zoom. It's a docker container built from [Source (GitHub)](https://github.com/jakedrew/telemetry).
+The [Live map](https://telemetry.jakedrw.com/) is a docker container built from this repo.
 
 In your terminal using a grpc client (I chose [grpcurl](https://github.com/fullstorydev/grpcurl)) run:
 
@@ -59,7 +59,7 @@ flowchart LR
 
 Each device is its own tokio task - they all send into one `tokio::sync::broadcast` channel (buffer of 256). Anything that wants the data just subscribes to this channel.
 
-For gRPC: every client gets its own subscription plus a small `mpsc` channel (16) that feeds the response stream. If you pass an id I only forward that device, otherwise you get all of them. A slow client only blocks its own task, and when it disconnects the send fails and the task ends.
+For gRPC: every client gets its own subscription plus a small `mpsc` channel (16) that feeds the response stream. If you pass an id I only forward that device, otherwise you get all of them. A slow client only blocks its own task, and when it disconnects the task ends.
 
 For SSE: I have one bridge task that turns each message into JSON once and puts it on a second broadcast channel (also 256) then each browser subscribes to that with `BroadcastStream`. Browsers can't do gRPC without a grpc-web proxy though, and SSE just works with `EventSource`, which also reconnects on its own.
 

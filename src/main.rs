@@ -175,7 +175,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .to_string(),
                     );
                 }
-                Err(broadcast::error::RecvError::Lagged(_)) => continue,
+                Err(broadcast::error::RecvError::Lagged(n)) => {
+                    eprintln!("SSE bridge lagged, skipped {n} messages");
+                    continue;
+                }
                 Err(broadcast::error::RecvError::Closed) => break,
             }
         }
