@@ -58,19 +58,19 @@ Leave out the id (or send it empty) and you get every device.
 
 ```mermaid
 flowchart TB
-    devices["20 simulated devices<br/>One tokio task each<br/>Updates every 500 ms"]
-    devices --> bus["Broadcast channel<br/>Buffer 256"]
+    devices["20 simulated devices. One tokio task each. Updates every 500 ms"]
+    devices --> bus["Broadcast channel. Buffer 256"]
 
     subgraph ssePath["SSE (axum)"]
-        bridge["Bridge task<br/>Converts to JSON once"]
-        bridge --> bus2["Broadcast channel<br/>Buffer 256"]
-        bus2 --> stream["/stream<br/>Subscription per browser"]
-        stream --> map["OpenLayers map<br/>Via EventSource"]
+        bridge["Bridge task converts to JSON once"]
+        bridge --> bus2["Broadcast channel. Buffer 256"]
+        bus2 --> stream["/stream subscription per browser"]
+        stream --> map["OpenLayers map via EventSource"]
     end
 
     subgraph grpcPath["gRPC (tonic)"]
-        grpcTask["Task per client<br/>Filters by id if given"]
-        grpcTask --> mpsc["mpsc channel<br/>Buffer 16"]
+        grpcTask["Task per client filters by id if given"]
+        grpcTask --> mpsc["mpsc channel. Buffer 16"]
         mpsc --> grpcStream["Response stream"]
         grpcStream --> grpcurl["grpcurl"]
     end
